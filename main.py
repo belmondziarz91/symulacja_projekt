@@ -103,67 +103,110 @@ def a_const_warehouse_prop(war_a, war_b, exp_prop, amount):
     return xa/amount
 
 
+# wartości do uruchomienia symulacji (każdy z każdym)
+a_buy_dist = [37.5, 40, 42.5]
+b_buy_dist = [57.5, 60, 62.5] 
+a_prod_prop = [
+    lambda a_dist, b_dist: lambda a_amo, b_amo, total_prod : a_dist/(a_dist+b_dist),
+    lambda a_dist, b_dist: lambda a_amo, b_amo, total_prod: a_const_warehouse_prop(a_amo, b_amo, a_dist/b_dist, total_prod)
+    ]
+
+sim_count = 500 # ile razy uruchamiać każdy przypadek
+simulation_output = [] # wyniki symulacja (śr przychód) dla każdego przypadku
+
+print("Simulation is running...")
+
+for ad in a_buy_dist:
+    for bd in b_buy_dist:
+        for ap_i in range(len(a_prod_prop)):
+            f = Factory()
+
+            f.distribution_A = lambda: np.random.poisson(ad)
+            f.distribution_B = lambda: np.random.poisson(bd)
+            f.a_proportion = a_prod_prop[ap_i](ad, bd)
+
+            results = []    
+            for i in range(sim_count):
+                results.append(pd.DataFrame(f.simulate()))
+
+            avg = sum(map(lambda df: df["prof"].sum(), results)) / sim_count
+
+            simulation_output.append(
+                {
+                    "a_prod_prop": ap_i, # indeks sposobu doboru prokorcji
+                    "a_buy_dist": ad,
+                    "b_buy_dist": bd,
+                    "avg": avg
+                }
+            )
+
+
+print("Finished!")
+print(pd.DataFrame(simulation_output))
+              
+
+# ---------------------------------------------------------------
+# OLD CODE
+# ---------------------------------------------------------------
 # różne przypadki do sprawdzenia
-cases = [
-    {
-        "prop": lambda a, b, amount: 4/6,
-        "a_buy_dis": lambda: np.random.binomial(40, 0.8),
-        "b_buy_dis": lambda: np.random.binomial(60, 0.8)
-    },
-    {
-        "prop": lambda a, b, amount: 6/4,
-        "a_buy_dis": lambda: np.random.binomial(40, 0.8),
-        "b_buy_dis": lambda: np.random.binomial(60, 0.8)
-    },
-    {
-        "prop": lambda a, b, amount: 0.4,
-        "a_buy_dis": lambda: np.random.binomial(40, 0.8),
-        "b_buy_dis": lambda: np.random.binomial(60, 0.8)
-    },
-    {
-        "prop": lambda a, b, amount: 0.6,
-        "a_buy_dis": lambda: np.random.binomial(40, 0.8),
-        "b_buy_dis": lambda: np.random.binomial(60, 0.8)
-    },
-    {
-        "prop": lambda a, b, amount: a_const_warehouse_prop(a, b, 4/6, amount),
-        "a_buy_dis": lambda: np.random.binomial(40, 0.8),
-        "b_buy_dis": lambda: np.random.binomial(60, 0.8)
-    },
-    {
-        "prop": lambda a, b, amount: a_const_warehouse_prop(a, b, 6/4, amount),
-        "a_buy_dis": lambda: np.random.binomial(40, 0.8),
-        "b_buy_dis": lambda: np.random.binomial(60, 0.8)
-    }
-]
+# cases = [
+#     {
+#         "prop": lambda a, b, amount: 4/6,
+#         "a_buy_dis": lambda: np.random.binomial(40, 0.8),
+#         "b_buy_dis": lambda: np.random.binomial(60, 0.8)
+#     },
+#     {
+#         "prop": lambda a, b, amount: 6/4,
+#         "a_buy_dis": lambda: np.random.binomial(40, 0.8),
+#         "b_buy_dis": lambda: np.random.binomial(60, 0.8)
+#     },
+#     {
+#         "prop": lambda a, b, amount: 0.4,
+#         "a_buy_dis": lambda: np.random.binomial(40, 0.8),
+#         "b_buy_dis": lambda: np.random.binomial(60, 0.8)
+#     },
+#     {
+#         "prop": lambda a, b, amount: 0.6,
+#         "a_buy_dis": lambda: np.random.binomial(40, 0.8),
+#         "b_buy_dis": lambda: np.random.binomial(60, 0.8)
+#     },
+#     {
+#         "prop": lambda a, b, amount: a_const_warehouse_prop(a, b, 4/6, amount),
+#         "a_buy_dis": lambda: np.random.binomial(40, 0.8),
+#         "b_buy_dis": lambda: np.random.binomial(60, 0.8)
+#     },
+#     {
+#         "prop": lambda a, b, amount: a_const_warehouse_prop(a, b, 6/4, amount),
+#         "a_buy_dis": lambda: np.random.binomial(40, 0.8),
+#         "b_buy_dis": lambda: np.random.binomial(60, 0.8)
+#     }
+# ]
+# sim_output = [] # lista, która składa się z list data frame'ów z wynikami danej symulacji. sim_output[nr_przypadku][nr_data_frame]
 
-sim_count = 200 # ile razy uruchamiać każdy przypadek
-sim_output = [] # lista, która składa się z list data frame'ów z wynikami danej symulacji. sim_output[nr_przypadku][nr_data_frame]
+# for i in range(len(cases)):
+#     f = Factory()
+#     f.a_proportion = cases[i]["prop"]
+#     f.distribution_A = cases[i]["a_buy_dis"]
+#     f.distribution_B = cases[i]["b_buy_dis"]
 
-for i in range(len(cases)):
-    f = Factory()
-    f.a_proportion = cases[i]["prop"]
-    f.distribution_A = cases[i]["a_buy_dis"]
-    f.distribution_B = cases[i]["b_buy_dis"]
+#     results = []
+#     for j in range(sim_count):
+#         results.append(pd.DataFrame(f.simulate()))
 
-    results = []
-    for j in range(sim_count):
-        results.append(pd.DataFrame(f.simulate()))
+#     sim_output.append(results)
 
-    sim_output.append(results)
-
-    # średni zysk dla danego przypadku
-    avg = sum(map(lambda df: df["prof"].sum(), results)) / sim_count
-    print(f"{i}: {avg}")
+#     # średni zysk dla danego przypadku
+#     avg = sum(map(lambda df: df["prof"].sum(), results)) / sim_count
+#     print(f"{i}: {avg}")
 
 
 # results_df = pd.DataFrame(f.simulate())
 # pd.set_option('display.max_columns', None)
 # print("Wyniki symulacji:")
 # print(results_df)
-#
+
 # summary = summarize(results_df)
-#
+
 # print("\nPodsumowanie symulacji:")
 # for key, value in summary.items():
 #     print(f"{key}: {value}")

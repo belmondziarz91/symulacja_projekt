@@ -11,11 +11,13 @@ data = {
 
 df = pd.DataFrame(data)
 
-sns.set(style="whitegrid")
+sns.set_theme(style="whitegrid")
 fig, axes = plt.subplots(2, 2, figsize=(12, 6))
 
-sns.barplot(x="a_prod_prop", y="avg", data=df, errorbar=None, hue="a_prod_prop", palette="muted", legend=False, ax=axes[0, 0])
+ax = sns.barplot(x="a_prod_prop", y="avg", data=df, errorbar=None, hue="a_prod_prop", palette="muted", legend=False, ax=axes[0, 0])
 axes[0, 0].set_title("Średnie 'avg' w zależności od 'a_prod_prop'")
+ax.bar_label(ax.containers[0], label_type="center")
+ax.bar_label(ax.containers[1], label_type="center")
 
 df = df.groupby(["a_buy_dist", "b_buy_dist"], as_index=False).mean()
 

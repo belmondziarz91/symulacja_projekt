@@ -18,18 +18,23 @@ ax = sns.barplot(x="a_prod_prop", y="avg", data=df, errorbar=None, hue="a_prod_p
 axes[0, 0].set_title("Średnie 'avg' w zależności od 'a_prod_prop'")
 ax.bar_label(ax.containers[0], label_type="center")
 ax.bar_label(ax.containers[1], label_type="center")
+axes[0, 0].set_ylim(35500, 36500)
 
-df = df.groupby(["a_buy_dist", "b_buy_dist"], as_index=False).mean()
+grouped = df.groupby(["a_buy_dist", "b_buy_dist", "a_prod_prop"], as_index=False).mean()
 
-sns.lineplot(x="a_buy_dist", y="avg", hue="a_prod_prop", data=data, ax=axes[0, 1], marker="o", palette="muted")
+diff_df = grouped.pivot(index=["a_buy_dist", "b_buy_dist"], columns="a_prod_prop", values="avg")
+diff_df["diff"] = diff_df[1] - diff_df[0]
+
+lineplot_data = grouped.groupby(["a_buy_dist", "a_prod_prop"], as_index=False).mean()
+sns.lineplot(x="a_buy_dist", y="avg", hue="a_prod_prop", data=grouped, ax=axes[0, 1], marker="o", palette="muted")
 axes[0, 1].set_title("Średnie 'avg' w zależności od 'a_buy_dist'")
 
-sns.lineplot(x="b_buy_dist", y="avg", hue="a_prod_prop", data=data, ax=axes[1, 0], marker="o", palette="muted")
+sns.lineplot(x="b_buy_dist", y="avg", hue="a_prod_prop", data=grouped, ax=axes[1, 0], marker="o", palette="muted")
 axes[1, 0].set_title("Średnie 'avg' w zależności od 'b_buy_dist'")
 
-pivot = df.pivot(index="a_buy_dist", columns="b_buy_dist", values="avg")
-sns.heatmap(pivot, annot=True, fmt=".2f", cmap="YlGnBu", ax=axes[1, 1])
-axes[1, 1].set_title("Heatmapa 'avg' dla 'a_buy_dist' i 'b_buy_dist'")
+pivot_diff = diff_df["diff"].unstack()
+sns.heatmap(pivot_diff, annot=True, fmt=".2f", cmap="YlGnBu", ax=axes[1, 1])
+axes[1, 1].set_title("Heatmapa różnic 'avg' dla 'a_buy_dist' i 'b_buy_dist'")
 
 plt.tight_layout()
 plt.show()

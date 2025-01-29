@@ -4,10 +4,10 @@ import pandas as pd
 
 class Factory:
     x = 100
-    c_A, c_B = 20, 30
-    k_A, k_B = 10, 15
-    T_A, T_B = 6, 4
-    sim_days = 31
+    c_A, c_B = 20, 30 # cena sprzedarzy produktow
+    k_A, k_B = 10, 15 # koszt wytworzenia produktow
+    T_A, T_B = 6, 4 # czas warznosci
+    sim_days = 31 # ilosc symulowanych dni
 
     a_proportion = None
     distribution_A = None
@@ -35,36 +35,47 @@ class Factory:
         return updated_warehouse
 
     def simulate(self):
+        # listy z prduktami i dniem w którym zostały wytworzone
         warehouse_A = []
         warehouse_B = []
+
+        # ilosc nieprzeterminowanych produktow na koncu ZESZŁEGO dnia / poczatku TEGO dnia
         M_A_prev = 0
         M_B_prev = 0
 
         results = []
 
         for N in range(self.sim_days):
+            # ilość wytworzonych produktów
             Q_A = int(self.x * self.a_proportion(M_A_prev, M_B_prev, self.x))
             Q_B = self.x - Q_A
+
             warehouse_A.append((Q_A, N))
             warehouse_B.append((Q_B, N))
 
+            # ilość przeterminowanych produktów tego dani
             P_A, warehouse_A = self.expired(warehouse_A, N, self.T_A)
             P_B, warehouse_B = self.expired(warehouse_B, N, self.T_B)
 
+            # ilość produktów którą chcą kupić klienci
             Z_A = self.distribution_A()
             Z_B = self.distribution_B()
 
+            # ilość produktów którą sprzedaliśmy
             S_A = Z_A if M_A_prev >= Z_A else M_A_prev
             S_B = Z_B if M_B_prev >= Z_B else M_B_prev
 
             warehouse_A = self.reduce(warehouse_A, S_A)
             warehouse_B = self.reduce(warehouse_B, S_B)
 
+            # stan magazynu na KOŃCU tego dnia
             M_A = M_A_prev - S_A - P_A + Q_A
             M_B = M_B_prev - S_B - P_B + Q_B
-            p_N = S_A * self.c_A + S_B * self.c_B
-            k_N = Q_A * self.k_A + Q_B * self.k_B
-            d_N = p_N - k_N
+
+            
+            p_N = S_A * self.c_A + S_B * self.c_B # przychud tego dnia
+            k_N = Q_A * self.k_A + Q_B * self.k_B # koszty tego dnia
+            d_N = p_N - k_N # dochud tego dnia
 
             results.append({
                 "pro_A": Q_A,
